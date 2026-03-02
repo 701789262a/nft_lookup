@@ -31,7 +31,19 @@ def get_banned_ips() -> list[str]:
 
         for entry in data.get("nftables", []):
             if "set" in entry:
-                return entry["set"].get("elem", [])
+                raw = entry["set"].get("elem", [])
+                ips = []
+                for item in raw:
+                    if isinstance(item, str):
+                        ips.append(item)
+                    elif isinstance(item, dict):
+                        # elementi con timeout: {"elem": {"val": "1.2.3.4", ...}}
+                        inner = item.get("elem", item)
+                        if isinstance(inner, dict):
+                            ips.append(inner.get("val", ""))
+                        elif isinstance(inner, str):
+                            ips.append(inner)
+                return [ip for ip in ips if ip]
 
     except subprocess.TimeoutExpired:
         print("[ERROR] nft command timed out")
